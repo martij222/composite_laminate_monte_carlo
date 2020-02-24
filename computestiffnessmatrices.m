@@ -1,8 +1,9 @@
-function [ A1, B1, D1, E1 F1, H1, A2, D2, F2 ] = computestiffnessmatrices( Q_bar1, Q_bar2, z )
+function [ A1, B1, D1, E1 F1, H1, A2, D2, F2, Q_bar1, Q_bar2 ] = computestiffnessmatrices( Q_bar1, Q_bar2, z )
 %computestiffnessmatrices Extensional, coupling, and bending stiffness matrices.
 %   Q_bari is an array of transformed reduced stiffness matrices in the form Q_bari =
 %   [Q_bar1 Q_bar2 ... Q_barNL], where NL is the number of laminae.
 %   h is an array of the z-coordinates of each lamina.
+%   The Q_bars are passed for failure analysis.
 
 % Find number of layers
 NL = length(Q_bar1);
