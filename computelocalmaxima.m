@@ -1,5 +1,5 @@
-function [ maxlocalstress, maxlocalstrain ] = computelocalmaxima( global_strain, Qbar, z, theta )
-%computelocalmaxima Compute local stresses and strains at the top and bottom surfaces
+function [ maxlocalstress, maxlocalstrain ] = computelocalmaxima( global_strain, Qbar, z, theta, E11, E22, G12 )
+%computelocalmaxima Compute maxim local stresses and strains at the top and bottom surfaces
 %of each ply in the laminate.
 %   global_strain is a [3 3 NL] matrix of global strain values. Qbar is a
 %   [3 3 NL] matrix of transformed reduced stiffness matrices for each ply.
@@ -44,10 +44,16 @@ end
 %% max stress and strain
 
 % strain
-maxepsilon1 = max( local_strain(1,1,:) );
-maxepsilon2 = max( local_strain(2,1,:) );
-maxgamma12 = max( local_strain(3,1,:) );
-maxlocalstrain = [maxepsilon1; maxepsilon2; maxgamma12];
+[maxepsilon1, eps1_i ] = max( local_strain(1,1,:) );
+[maxepsilon2, eps2_i ] = max( local_strain(2,1,:) );
+[maxgamma12, gamma12_i ] = max( local_strain(3,1,:) );
+
+temp = repelem(1:NL,2); % matrix of ply numbers
+E11 = E11( temp(eps1_i) ); E22 = E22( temp(eps2_i) ); G12 = G12( temp(gamma12_i) ); % ply properties corresponding to maximum strain
+
+maxlocalstrain = zeros([3 1 2]); % initialize matrix
+maxlocalstrain(:,:,1) = [maxepsilon1; maxepsilon2; maxgamma12]; % assign strain vector to first 3d index
+maxlocalstrain(:,:,2) = [E11; E22; G12]; % assign corresponding properties to second 3d index
 
 % stress
 maxsigma1 = max( local_stress(1,1,:) );

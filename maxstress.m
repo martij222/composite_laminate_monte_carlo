@@ -8,7 +8,7 @@ sr1_C = -sig1_C_ult/local_stress(1); sr1_T = sig1_T_ult/local_stress(1); % direc
 sr2_C = -sig2_C_ult/local_stress(2); sr2_T = sig2_T_ult/local_stress(2); % direction 2
 sr12 = tau12_ult/abs( local_stress(3) ); % shear
 
-temp = [sr1_C sr1_T sr2_C sr2_C sr12];
+temp = [sr1_C sr1_T sr2_C sr2_T sr12];
 pos_ratios = temp(temp > 0); % get positive ratios only
 
 maxstress_SR = min(pos_ratios);
