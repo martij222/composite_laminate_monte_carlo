@@ -51,14 +51,16 @@ end
 temp = repelem(1:NL,2); % matrix of ply numbers
 E11 = E11( temp(eps1_i) ); E22 = E22( temp(eps2_i) ); G12 = G12( temp(gamma12_i) ); % ply properties corresponding to maximum strain
 
-maxlocalstrain = zeros([3 1 2]); % initialize matrix
+maxlocalstrain = zeros([3 1 3]); % initialize matrix
 maxlocalstrain(:,:,1) = [maxepsilon1; maxepsilon2; maxgamma12]; % assign strain vector to first 3d index
 maxlocalstrain(:,:,2) = [E11; E22; G12]; % assign corresponding properties to second 3d index
+maxlocalstrain(:,:,3) = [temp(eps1_i); temp(eps2_i); temp(gamma12_i)]; % ply numbers
 
 % stress
-maxsigma1 = max( local_stress(1,1,:) );
-maxsigma2 = max( local_stress(2,1,:) );
-maxtau12 = max( local_stress(3,1,:) );
-maxlocalstress = [maxsigma1; maxsigma2; maxtau12];
-
+maxlocalstress = zeros([3 1 2]);
+[maxsigma1, sig1_i] = max( local_stress(1,1,:) );
+[maxsigma2, sig2_i] = max( local_stress(2,1,:) );
+[maxtau12, tau12_i] = max( local_stress(3,1,:) );
+maxlocalstress(:,:,1) = [maxsigma1; maxsigma2; maxtau12];
+maxlocalstress(:,:,2) = [temp(sig1_i); temp(sig2_i); temp(tau12_i)];
 end

@@ -3,58 +3,65 @@ clear; clc; close all;
 %with nominal lamina angles theta given the stochastic nature of the 
 %material properties and lamina angles.
 %% simulation parameters
-tic
 n_trials = 10000;
 theta = [45, -45, 45, -45];
-NL = length(theta);
-sd = 3;
+sd = 0:0.1:3;
 
-%% initialize arrays to store simulation results
-A1 = zeros([3 3 n_trials]); B1 = zeros([3 3 n_trials]); D1 = zeros([3 3 n_trials]);
-E1 = zeros([3 3 n_trials]); F1 = zeros([3 3 n_trials]); H1 = zeros([3 3 n_trials]);
-A2 = zeros([2 2 n_trials]); D2 = zeros([2 2 n_trials]); F2 = zeros([2 2 n_trials]);
-Qbar1 = zeros([3 3 NL n_trials]); Qbar2 = zeros([2 2 NL n_trials]); Z = zeros([NL+1 1 n_trials]); Theta = zeros([1 4 n_trials]);
-E11 = zeros([NL 1 n_trials]); E22 = zeros([NL 1 n_trials]); G12 = zeros([NL 1 n_trials]); rho = zeros(n_trials, 1); 
-
-for i=1:n_trials
-    [ A1(:,:,i), B1(:,:,i), D1(:,:,i), ...
-      E1(:,:,i), F1(:,:,i), H1(:,:,i), ...
-      A2(:,:,i), D2(:,:,i), F2(:,:,i), ...
-      Qbar1(:,:,:,i), Qbar2(:,:,:,i), Z(:,:,i), Theta(:,:,i), ...
-      E11(:,:,i), E22(:,:,i), G12(:,:,i), rho(i)] = generatelaminate(theta, sd);
-end
-fprintf('Laminate Generation: '); toc
-
-%% failure analysis
-tic
 % loading conditions Nx/y/xy [N/m], Mx/y/xy [Nm/m]
 Nx = -10000; Ny = -10000; Nxy = 0; Mx = 0; My = 0; Mxy = 0;
 F = [Nx; Ny; Nxy; Mx; My; Mxy];
 
-% initialize strength ratio vectors
-% maxstress_SR = zeros([1 n_trials]); tsai_hill_SR = zeros([1 n_trials]); mod_tsai_hill_SR = zeros([1 n_trials]);
-strength_ratios = zeros(n_trials,4);
-for i=1:n_trials
-    global_strain = computeglobalstrain( F, A1(:,:,i), B1(:,:,i), D1(:,:,i), Z(:,:,i) ); 
-    [maxlocalstress, maxlocalstrain] = ...
-        computelocalmaxima( global_strain, Qbar1(:,:,:,i), Z(:,:,i), Theta(:,:,i), E11(:,:,i), E22(:,:,i), G12(:,:,i) );
+% set seed for reproducibility
+rng(0);
+
+%% iterate through parameter selection
+for i=1:length(sd)
+    fprintf('\nSD = ' + string(sd(i)) + '\n')
+    %% laminate generation
+    tic    
+    [ A1, B1, D1, ~, ~, ~, ~, ~, ~, Qbar1, ~, Z, Theta, E11, E22, G12, ply_thickness ] = ...
+        stiffnessmatrixmontecarlo( theta, n_trials, sd(i) ); 
+    fprintf('\nLaminate Generation: '); toc
+
+    %% failure analysis
+    tic
+    T = generatesimulationdata(F, A1, B1, D1, Qbar1, Z, Theta, E11, E22, G12, ply_thickness, sd(i));
+    fprintf('\nFailure Analysis: '); toc
+
+    %% save data to csv
+    % convert theta to string
+    theta_str = "";
     
-    % compute ultimate strengths
-    [ sig1_T_ult, sig1_C_ult, sig2_T_ult, sig2_C_ult, tau12_ult ] = generaterandomstrengths( sd );
+    for j=1:length(theta)
+        theta_str = theta_str + string(theta(j));
+    end
     
-    % failure theories
-    strength_ratios(i,1) = maxstress( maxlocalstress, sig1_T_ult, sig1_C_ult, sig2_T_ult, sig2_C_ult, tau12_ult );
-    strength_ratios(i,2) = maxstrain( maxlocalstrain, sig1_T_ult, sig1_C_ult, sig2_T_ult, sig2_C_ult, tau12_ult );
-    strength_ratios(i,3) = tsai_hill( maxlocalstress, sig1_T_ult, sig2_T_ult, tau12_ult );
-    strength_ratios(i,4) = mod_tsai_hill( maxlocalstress, sig1_T_ult, sig1_C_ult, sig2_T_ult, sig2_C_ult, tau12_ult );
+    filename = "n_trials_" + string(n_trials) ...
+                + "_sd_" + string(sd(i)) ...
+                + "_theta_ " + theta_str + ".csv";
+            
+    writetable(T,filename);
 end
-
-fprintf('\nFailure Analysis: '); toc
-fprintf('\nStrength Ratio Summary Statistics: \n');
-
-statistics = statsummary( strength_ratios )
-
-histogram(strength_ratios(:,1)); figure;
-histogram(strength_ratios(:,2)); figure;
-histogram(strength_ratios(:,3)); figure;
-histogram(strength_ratios(:,4))
+%% statistics
+%fprintf('\nStrength Ratio Summary Statistics: \n');
+%
+% summarize strength ratio statistics
+% statistics = statsummary( strength_ratios );
+% disp(statistics)
+% 
+% % plot histograms for strength ratio comparison
+% hold on;
+% histogram(strength_ratios(:,1)); histogram(strength_ratios(:,2));
+% histogram(strength_ratios(:,3)); histogram(strength_ratios(:,4));
+% histogram(strength_ratios(:,5)); histogram(strength_ratios(:,6));
+% legend({'max stress','max strain','tsai-hill','modified tsai-hill','tsai-wu (Hoffman)','tsai-wu (Mises-Hencky)'})
+% title('Histogram Comparison of Failure Theories')
+% xlabel('Strength Ratio'); ylabel('Frequency');
+% hold off;
+% 
+% % plot boxplots for ratio comparison
+% figure;
+% boxplot(strength_ratios, 'labels',{'max stress','max strain','tsai-hill','modified tsai-hill','tsai-wu (Hoffman)','tsai-wu (Mises-Hencky)'})
+% hold on; plot(mean(strength_ratios), 'dg'); hold off;
+% title('Boxplot Comparison of Failure Theories')
+% ylabel('Strength Ratio'); xtickangle(45);
