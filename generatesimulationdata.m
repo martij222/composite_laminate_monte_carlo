@@ -18,7 +18,7 @@ for i=1:n_trials
         computelocalmaxima( global_strain, Qbar1(:,:,:,i), Z(:,:,i), Theta(:,:,i), E11(:,:,i), E22(:,:,i), G12(:,:,i) );
     
     % compute ultimate strengths
-    [ sig1_T_ult(i), sig1_C_ult(i), sig2_T_ult(i), sig2_C_ult(i), tau12_ult(i) ] = generaterandomstrengths( sd );
+    [ sig1_T_ult(i), sig1_C_ult(i), sig2_T_ult(i), sig2_C_ult(i), tau12_ult(i) ] = generaterandomstrengths( sd(7:11) );
     
     
     % failure theories
@@ -35,7 +35,12 @@ E22 = reshape( permute(E22,[3 1 2]),[n_trials NL]);
 G12 = reshape( permute(G12,[3 1 2]),[n_trials NL]);
 Theta = reshape( permute(Theta,[3 1 2]) ,[n_trials NL]);
 ply_thickness = reshape( permute(ply_thickness,[3 1 2]),[n_trials NL]);
-N = repelem(n_trials, n_trials)'; SD = repelem(sd, n_trials)';
+N = repelem(n_trials, n_trials)';
+
+SD = zeros([n_trials 10]); % create table of sd values
+for j=1:10
+    SD(:,j) = repelem(sd(j), n_trials);
+end
 
 % assign strength ratios to separate variables
 max_stress_SR = strength_ratios(:,1); max_strain_SR = strength_ratios(:,2);

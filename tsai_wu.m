@@ -18,7 +18,7 @@ a_H = H11*local_stress(1)^2 + H22*local_stress(2)^2 + H66*local_stress(3)^2 + 2*
 a_MH = H11*local_stress(1)^2 + H22*local_stress(2)^2 + H66*local_stress(3)^2 + 2*H12_MH*local_stress(1)*local_stress(2); 
 b = H1*local_stress(1) + H2*local_stress(2) + H6*local_stress(3); c = -1;
 sr_H = roots( [a_H b c] ); sr_H = sr_H(sr_H > 0);
-sr_MH = roots( [a_MH b c] ); sr_MH = sr_H(sr_MH > 0);
+sr_MH = roots( [a_MH b c] ); sr_MH = sr_MH(sr_MH > 0);
 
 % return minimum SR
 tsai_wu_H_SR = min(sr_H); % Hoffman criterion

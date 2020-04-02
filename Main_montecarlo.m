@@ -5,28 +5,37 @@ clear; clc; close all;
 %% simulation parameters
 n_trials = 10000;
 theta = [45, -45, 45, -45];
-sd = 0:0.1:3;
 
 % loading conditions Nx/y/xy [N/m], Mx/y/xy [Nm/m]
 Nx = -10000; Ny = -10000; Nxy = 0; Mx = 0; My = 0; Mxy = 0;
 F = [Nx; Ny; Nxy; Mx; My; Mxy];
 
-% set seed for reproducibility
-rng(0);
+%% specify sds for each simulation for which to generate data
+a = 0:2; % simulate for all combinations of sd = 0, 1, 2
+cov11 = combvec(a,a,a,a,a,a); cov12 = zeros([5 729]);
+cov21 = zeros([6, 243]); cov22 = combvec(a,a,a,a,a);
+sim1 = vertcat(cov11,cov12); % material properties random, strengths deterministic
+sim2 = vertcat(cov21,cov22); % material properties deterministic, strengths random
+sd = horzcat(sim1,sim2); % [E11 E22 G12 v12 dtheta t] [sig1_T_ult sig1_C_ult sig2_T_ult sig2_C_ult tau12_ult]
+% a = 0.1:0.1:3;
+% sd = reshape( repelem(a',11),[11 30] );
 
 %% iterate through parameter selection
-for i=1:length(sd)
-    fprintf('\nSD = ' + string(sd(i)) + '\n')
+rng(0); % set seed for reproducibility
+n_sims = length(sd);
+t1 = zeros([n_sims 1]); t2 = zeros([n_sims 1]); % arrays to store simulation times
+for i=1:n_sims
+    fprintf('\nRun ' + string(i) + '\n');
     %% laminate generation
-    tic    
+    tic
     [ A1, B1, D1, ~, ~, ~, ~, ~, ~, Qbar1, ~, Z, Theta, E11, E22, G12, ply_thickness ] = ...
-        stiffnessmatrixmontecarlo( theta, n_trials, sd(i) ); 
-    fprintf('\nLaminate Generation: '); toc
+        stiffnessmatrixmontecarlo( theta, n_trials, sd(1:6,i) ); 
+    t1(i) = toc;
 
     %% failure analysis
     tic
-    T = generatesimulationdata(F, A1, B1, D1, Qbar1, Z, Theta, E11, E22, G12, ply_thickness, sd(i));
-    fprintf('\nFailure Analysis: '); toc
+    T = generatesimulationdata( F, A1, B1, D1, Qbar1, Z, Theta, E11, E22, G12, ply_thickness, sd(:,i) );
+    t2(i) = toc;
 
     %% save data to csv
     % convert theta to string
@@ -36,12 +45,15 @@ for i=1:length(sd)
         theta_str = theta_str + string(theta(j));
     end
     
+%     filename = "simulation_" + string(i) ...
+%                 + "_theta_ " + theta_str + ".csv";
     filename = "n_trials_" + string(n_trials) ...
-                + "_sd_" + string(sd(i)) ...
-                + "_theta_ " + theta_str + ".csv";
+                 + "_sd_" + string(sd(1,i)) ...
+                 + "_theta_ " + theta_str + ".csv";
             
-    writetable(T,filename);
+    writetable(T,"Simulation Data\" + filename);
 end
+fprintf('\nTotal time elapsed: ' + string( sum(t2+t1) ) + ' seconds\n');
 %% statistics
 %fprintf('\nStrength Ratio Summary Statistics: \n');
 %
